@@ -78,7 +78,7 @@ const server = http.createServer(async (req, res) => {
                         res.end(JSON.stringify({ message: 'Not-found' }));
                     }
                 }
-            }, 10000);
+            }, 5000);
             activeRes  = res;
         })
     }else {
