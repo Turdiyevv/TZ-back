@@ -2,10 +2,10 @@
   "name": "nodejs",
   "version": "1.0.0",
   "description": "node starter",
-  "main": "main.js",
+  "main": "main.ts",
   "scripts": {
-    "start": "node main.js" ,
-    "dev": "nodemon main.js"
+    "start": "node main.ts",
+    "dev": "nodemon main.ts"
   },
   "keywords": [
     "nodejs"
@@ -13,7 +13,10 @@
   "author": "Turdiyev",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "^20.14.10",
     "jquery": "^3.7.1",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
   }
 }

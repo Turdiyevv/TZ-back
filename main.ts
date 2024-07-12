@@ -1,6 +1,10 @@
-const http = require('http');
+import * as http from "http";
 
-const data = [
+interface Data {
+    email: string,
+    number: string
+}
+const data: Data[] = [
     { 'email': 'jim@gmail.com', 'number': '(90)221-41-22' },
     { 'email': 'jam@gmail.com', 'number': '(91)830-43-47' },
     { 'email': 'john@gmail.com', 'number': '(99)221-41-22' },
@@ -10,14 +14,14 @@ const data = [
     { 'email': 'jill@gmail.com', 'number': '(91)822-42-00' },
     { 'email': 'jill@gmail.com', 'number': '(91)822-42-86' }
 ];
-let timeoutID;
-let activeRes ;
+let timeoutID : NodeJS.Timeout | undefined;
+let activeRes : http.ServerResponse | undefined;
 
-const isValidNumber = (number) => {
+const isValidNumber = (number: string): boolean => {
     const regex = /^\(\d{2}\)\d{3}-\d{2}-\d{2}$/;
     return regex.test(number);
 };
-const isValidEmail = (email) => {
+const isValidEmail = (email: string): boolean => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
 };
@@ -42,49 +46,44 @@ const server = http.createServer(async (req, res) => {
         });
         await req.on('end', async () => {
             const {email, number} = JSON.parse(body);
-            let found;
-            if(number && email) {
-                if (isValidNumber(number) && isValidEmail(email)){
-                    found = data.filter(item => item.email === email && item.number === number);
-                }
-                else {
-                    await res.writeHead(403, {'Content-Type' : 'application/json'});
-                    await res.end('Validation error');
-                    return
-                }
-            } else if(email && !number){
-                if (isValidEmail(email)){
-                    found = data.filter(item => item.email === email);
-                } else {
-                    await res.writeHead(403, {'Content-Type' : 'application/json'});
-                    await res.end('Validation error');
-                    return
-                }
-            }else {
-                await res.writeHead(403, {'Content-Type' : 'application/json'});
-                await res.end('Validation error');
-                return
+
+            if (!isValidEmail(email)) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Invalid email format' }));
+                return;
             }
+
+            if (number && !isValidNumber(number)) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Invalid number format' }));
+                return;
+            }
+
+            const found = data.filter(item => item.email === email && (!number || item.number === number));
+
             if (timeoutID) {
                 clearTimeout(timeoutID);
-                if (activeRes) {
+                if (activeRes && !activeRes.writableEnded) {
                     activeRes .writeHead(408, { 'Content-Type': 'application/json' });
                     activeRes .end(JSON.stringify({ message: 'Request Timeout' }));
                 }
             }
-            if (found && found.length) {
-                timeoutID = setTimeout(async () => {
-                    await res.writeHead(200, {'Content-Type' : 'application/json'});
-                    await res.end(JSON.stringify(found));
-                }, 5000)
-                activeRes  = res;
-            }else {
-                await res.writeHead(404, {'Content-Type' : 'application/json'});
-                await res.end('Not-found');
-            }
+            timeoutID = setTimeout(() => {
+                if (!res.writableEnded) {
+                    if (found.length && found.length > 0) {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify(found));
+                    } else {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ message: 'Not-found' }));
+                    }
+                }
+            }, 10000);
+            activeRes  = res;
         })
     }else {
-        console.log('und method !')
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Unsupported method!' }));
     }
 })
 server.listen(3000, () => {
